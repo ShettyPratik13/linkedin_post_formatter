@@ -1,6 +1,4 @@
-import { useRef, useCallback } from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import { useRef, useEffect, useState } from 'react';
 import './RichTextEditor.css';
 
 interface RichTextEditorProps {
@@ -16,76 +14,236 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   placeholder = 'Start typing your LinkedIn post here...',
   maxLength = 3000,
 }) => {
-  const quillRef = useRef<ReactQuill>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
-  // Custom toolbar configuration
-  const modules = {
-    toolbar: {
-      container: [
-        // Headers
-        [{ header: [1, 2, 3, false] }],
-        
-        // Text formatting
-        ['bold', 'italic', 'underline', 'strike'],
-        
-        // Lists
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        
-        // Blockquote and code block
-        ['blockquote', 'code-block'],
-        
-        // Links
-        ['link'],
-        
-        // Clear formatting
-        ['clean'],
-      ],
-    },
-    clipboard: {
-      matchVisual: false,
-    },
+  // Update editor content when value changes externally
+  useEffect(() => {
+    if (editorRef.current && document.activeElement !== editorRef.current) {
+      editorRef.current.innerHTML = value;
+    }
+  }, [value]);
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      const content = editorRef.current.innerHTML;
+      const text = editorRef.current.innerText || '';
+      
+      if (text.length <= maxLength) {
+        onChange(content);
+      } else {
+        // Prevent exceeding max length
+        editorRef.current.innerHTML = value;
+      }
+    }
   };
 
-  const formats = [
-    'header',
-    'bold',
-    'italic',
-    'underline',
-    'strike',
-    'list',
-    'bullet',
-    'blockquote',
-    'code-block',
-    'link',
-  ];
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+  };
 
-  // Handle text change with length validation
-  const handleChange = useCallback((content: string, _delta: any, _source: string, editor: any) => {
-    try {
-      const text = editor.getText();
-      const textLength = text.trim().length;
+  const applyFormat = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+  };
 
-      // Allow change if within limit or if user is deleting
-      if (textLength <= maxLength || content.length < value.length) {
-        onChange(content);
-      }
-    } catch (error) {
-      // If editor is not ready, just update the content
-      onChange(content);
+  const insertLink = () => {
+    const url = prompt('Enter URL:');
+    if (url) {
+      applyFormat('createLink', url);
     }
-  }, [maxLength, onChange, value.length]);
+  };
+
+  const formatBlock = (tag: string) => {
+    document.execCommand('formatBlock', false, tag);
+    editorRef.current?.focus();
+  };
 
   return (
     <div className="rich-text-editor-container">
-      <ReactQuill
-        ref={quillRef}
-        theme="snow"
-        value={value}
-        onChange={handleChange}
-        modules={modules}
-        formats={formats}
-        placeholder={placeholder}
-        className="rich-text-editor"
+      {/* Toolbar */}
+      <div className="rich-text-toolbar">
+        <div className="toolbar-group">
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              formatBlock('h1');
+            }}
+            title="Heading 1"
+          >
+            H1
+          </button>
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              formatBlock('h2');
+            }}
+            title="Heading 2"
+          >
+            H2
+          </button>
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              formatBlock('h3');
+            }}
+            title="Heading 3"
+          >
+            H3
+          </button>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        <div className="toolbar-group">
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat('bold');
+            }}
+            title="Bold (Ctrl/Cmd+B)"
+          >
+            <strong>B</strong>
+          </button>
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat('italic');
+            }}
+            title="Italic (Ctrl/Cmd+I)"
+          >
+            <em>I</em>
+          </button>
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat('underline');
+            }}
+            title="Underline (Ctrl/Cmd+U)"
+          >
+            <u>U</u>
+          </button>
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat('strikeThrough');
+            }}
+            title="Strikethrough"
+          >
+            <s>S</s>
+          </button>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        <div className="toolbar-group">
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat('insertUnorderedList');
+            }}
+            title="Bullet List"
+          >
+            •
+          </button>
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat('insertOrderedList');
+            }}
+            title="Numbered List"
+          >
+            1.
+          </button>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        <div className="toolbar-group">
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              insertLink();
+            }}
+            title="Insert Link"
+          >
+            🔗
+          </button>
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              formatBlock('blockquote');
+            }}
+            title="Blockquote"
+          >
+            ❝
+          </button>
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              formatBlock('pre');
+            }}
+            title="Code Block"
+          >
+            {'</>'}
+          </button>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        <div className="toolbar-group">
+          <button
+            type="button"
+            className="toolbar-btn"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              applyFormat('removeFormat');
+              formatBlock('p');
+            }}
+            title="Clear Formatting"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Editor */}
+      <div
+        ref={editorRef}
+        className={`rich-text-editor ${isFocused ? 'focused' : ''}`}
+        contentEditable
+        onInput={handleInput}
+        onPaste={handlePaste}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        data-placeholder={placeholder}
+        suppressContentEditableWarning
       />
     </div>
   );
