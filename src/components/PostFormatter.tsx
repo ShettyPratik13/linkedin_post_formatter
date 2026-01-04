@@ -1,61 +1,192 @@
-import { useState, type ChangeEvent } from 'react';
+import { useState, useMemo } from 'react';
+import RichTextEditor from './RichTextEditor';
+import MarkdownEditor from './MarkdownEditor';
+import {
+  htmlToMarkdown,
+  markdownToHtml,
+  stripFormatting,
+  formatForLinkedIn,
+  getPlainTextLength,
+} from '../utils/textFormatters';
 import './PostFormatter.css';
 
-const PostFormatter: React.FC = () => {
-  const [postText, setPostText] = useState<string>('');
-  const [copied, setCopied] = useState<boolean>(false);
+type EditorMode = 'wysiwyg' | 'markdown';
+type CopyFormat = 'plain' | 'rich' | 'markdown';
 
-  const handleTextChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setPostText(e.target.value);
+const PostFormatter: React.FC = () => {
+  const [editorMode, setEditorMode] = useState<EditorMode>('wysiwyg');
+  const [htmlContent, setHtmlContent] = useState<string>('');
+  const [markdownContent, setMarkdownContent] = useState<string>('');
+  const [copied, setCopied] = useState<CopyFormat | null>(null);
+
+  const linkedInMaxLength = 3000;
+
+  // Get current content based on mode
+  const currentContent = editorMode === 'wysiwyg' ? htmlContent : markdownContent;
+
+  // Calculate character count (plain text)
+  const characterCount = useMemo(() => {
+    return getPlainTextLength(currentContent, editorMode === 'wysiwyg' ? 'html' : 'markdown');
+  }, [currentContent, editorMode]);
+
+  // Handle editor mode toggle
+  const handleModeToggle = (newMode: EditorMode) => {
+    if (newMode === editorMode) return;
+
+    // Convert content between formats
+    if (newMode === 'markdown' && htmlContent) {
+      setMarkdownContent(htmlToMarkdown(htmlContent));
+    } else if (newMode === 'wysiwyg' && markdownContent) {
+      setHtmlContent(markdownToHtml(markdownContent));
+    }
+
+    setEditorMode(newMode);
   };
 
-  const handleCopy = async () => {
+  // Handle content change in WYSIWYG mode
+  const handleHtmlChange = (value: string) => {
+    setHtmlContent(value);
+  };
+
+  // Handle content change in Markdown mode
+  const handleMarkdownChange = (value: string) => {
+    setMarkdownContent(value);
+  };
+
+  // Handle copy with different formats
+  const handleCopy = async (format: CopyFormat) => {
     try {
-      await navigator.clipboard.writeText(postText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      let textToCopy = '';
+
+      if (format === 'plain') {
+        // LinkedIn-compatible plain text with Unicode formatting
+        textToCopy = formatForLinkedIn(
+          currentContent,
+          editorMode === 'wysiwyg' ? 'html' : 'markdown'
+        );
+      } else if (format === 'rich') {
+        // Copy as HTML (for rich text compatible platforms)
+        const html = editorMode === 'wysiwyg' ? htmlContent : markdownToHtml(markdownContent);
+        // Create a ClipboardItem with HTML
+        const blob = new Blob([html], { type: 'text/html' });
+        const plainBlob = new Blob([stripFormatting(html)], { type: 'text/plain' });
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': blob,
+            'text/plain': plainBlob,
+          }),
+        ]);
+        setCopied(format);
+        setTimeout(() => setCopied(null), 2000);
+        return;
+      } else if (format === 'markdown') {
+        // Copy as Markdown
+        textToCopy = editorMode === 'markdown' ? markdownContent : htmlToMarkdown(htmlContent);
+      }
+
+      await navigator.clipboard.writeText(textToCopy);
+      setCopied(format);
+      setTimeout(() => setCopied(null), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
+      // Fallback: copy plain text
+      try {
+        const plainText = stripFormatting(
+          editorMode === 'wysiwyg' ? htmlContent : markdownToHtml(markdownContent)
+        );
+        await navigator.clipboard.writeText(plainText);
+        setCopied(format);
+        setTimeout(() => setCopied(null), 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed: ', fallbackErr);
+      }
     }
   };
 
+  // Handle clear
   const handleClear = () => {
-    setPostText('');
+    setHtmlContent('');
+    setMarkdownContent('');
   };
 
+  // Add emoji
   const addEmoji = (emoji: string) => {
-    setPostText(prev => prev + emoji);
+    if (editorMode === 'wysiwyg') {
+      setHtmlContent(prev => prev + emoji);
+    } else {
+      setMarkdownContent(prev => prev + emoji);
+    }
   };
 
-  const popularEmojis = ['😊', '👍', '🎉', '💡', '🚀', '📈', '💼', '🔥', '✨', '🎯', '💪', '🌟', '📊', '✅', '🏆'];
+  const popularEmojis = [
+    '😊', '👍', '🎉', '💡', '🚀', '📈', '💼', '🔥', '✨', '🎯',
+    '💪', '🌟', '📊', '✅', '🏆', '❤️', '🙌', '💯', '🎓', '🌍'
+  ];
 
-  const characterCount = postText.length;
-  const linkedInMaxLength = 3000;
+  // Generate preview HTML
+  const previewHtml = useMemo(() => {
+    if (!currentContent) return '';
+    return editorMode === 'wysiwyg' ? htmlContent : markdownToHtml(markdownContent);
+  }, [currentContent, editorMode, htmlContent, markdownContent]);
+
+  const hasContent = Boolean(currentContent.trim());
 
   return (
     <div className="post-formatter-container">
       <header className="header">
         <h1>LinkedIn Post Formatter</h1>
-        <p className="subtitle">Create engaging posts with rich text and emojis</p>
+        <p className="subtitle">Create engaging posts with rich text formatting</p>
       </header>
 
       <div className="formatter-content">
         <div className="editor-section">
           <div className="section-header">
             <h2>✍️ Compose Your Post</h2>
-            <span className={`character-count ${characterCount > linkedInMaxLength ? 'over-limit' : ''}`}>
-              {characterCount} / {linkedInMaxLength}
-            </span>
+            <div className="header-controls">
+              {/* Editor Mode Toggle */}
+              <div className="mode-toggle">
+                <button
+                  className={`mode-btn ${editorMode === 'wysiwyg' ? 'active' : ''}`}
+                  onClick={() => handleModeToggle('wysiwyg')}
+                  aria-label="WYSIWYG Editor"
+                  title="Visual Editor"
+                >
+                  Visual
+                </button>
+                <button
+                  className={`mode-btn ${editorMode === 'markdown' ? 'active' : ''}`}
+                  onClick={() => handleModeToggle('markdown')}
+                  aria-label="Markdown Editor"
+                  title="Markdown Editor"
+                >
+                  Markdown
+                </button>
+              </div>
+              
+              <span className={`character-count ${characterCount > linkedInMaxLength ? 'over-limit' : ''}`}>
+                {characterCount} / {linkedInMaxLength}
+              </span>
+            </div>
           </div>
-          
-          <textarea
-            className="post-input"
-            value={postText}
-            onChange={handleTextChange}
-            placeholder="Start typing your LinkedIn post here...&#10;&#10;Tips:&#10;- Use emojis to make your post more engaging&#10;- Break text into short paragraphs for better readability&#10;- Add relevant hashtags at the end"
-            maxLength={linkedInMaxLength}
-          />
 
+          {/* Conditional Editor Rendering */}
+          <div className="editor-wrapper">
+            {editorMode === 'wysiwyg' ? (
+              <RichTextEditor
+                value={htmlContent}
+                onChange={handleHtmlChange}
+                maxLength={linkedInMaxLength}
+              />
+            ) : (
+              <MarkdownEditor
+                value={markdownContent}
+                onChange={handleMarkdownChange}
+                maxLength={linkedInMaxLength}
+              />
+            )}
+          </div>
+
+          {/* Emoji Picker */}
           <div className="emoji-picker">
             <h3>Quick Emojis:</h3>
             <div className="emoji-list">
@@ -65,6 +196,7 @@ const PostFormatter: React.FC = () => {
                   className="emoji-button"
                   onClick={() => addEmoji(emoji)}
                   title={`Add ${emoji}`}
+                  aria-label={`Add emoji ${emoji}`}
                 >
                   {emoji}
                 </button>
@@ -72,13 +204,44 @@ const PostFormatter: React.FC = () => {
             </div>
           </div>
 
+          {/* Action Buttons */}
           <div className="action-buttons">
-            <button className="btn btn-clear" onClick={handleClear} disabled={!postText}>
+            <button
+              className="btn btn-clear"
+              onClick={handleClear}
+              disabled={!hasContent}
+            >
               Clear
             </button>
-            <button className="btn btn-copy" onClick={handleCopy} disabled={!postText}>
-              {copied ? '✓ Copied!' : 'Copy to Clipboard'}
-            </button>
+            
+            <div className="copy-buttons">
+              <button
+                className="btn btn-copy btn-primary"
+                onClick={() => handleCopy('plain')}
+                disabled={!hasContent}
+                title="Copy for LinkedIn (with Unicode formatting)"
+              >
+                {copied === 'plain' ? '✓ Copied!' : 'Copy for LinkedIn'}
+              </button>
+              
+              <button
+                className="btn btn-copy"
+                onClick={() => handleCopy('rich')}
+                disabled={!hasContent}
+                title="Copy as Rich Text (HTML)"
+              >
+                {copied === 'rich' ? '✓ Copied!' : 'Copy Rich Text'}
+              </button>
+              
+              <button
+                className="btn btn-copy"
+                onClick={() => handleCopy('markdown')}
+                disabled={!hasContent}
+                title="Copy as Markdown"
+              >
+                {copied === 'markdown' ? '✓ Copied!' : 'Copy Markdown'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -87,11 +250,17 @@ const PostFormatter: React.FC = () => {
             <h2>👁️ Preview</h2>
           </div>
           <div className="post-preview">
-            {postText ? (
-              <div className="preview-text">{postText}</div>
+            {hasContent ? (
+              <div 
+                className="preview-text formatted-content"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
             ) : (
               <div className="preview-placeholder">
                 Your post preview will appear here...
+                <br />
+                <br />
+                <small>Start typing in the editor to see your formatted content</small>
               </div>
             )}
           </div>
@@ -99,7 +268,7 @@ const PostFormatter: React.FC = () => {
       </div>
 
       <footer className="footer">
-        <p>💡 Pro tip: LinkedIn posts with 3-5 emojis tend to get more engagement!</p>
+        <p>💡 Pro tip: Use rich text formatting and emojis to make your LinkedIn posts more engaging!</p>
       </footer>
     </div>
   );
