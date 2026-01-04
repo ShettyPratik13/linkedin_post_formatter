@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import './RichTextEditor.css';
@@ -60,23 +60,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   ];
 
   // Handle text change with length validation
-  const handleChange = (content: string, _delta: any, _source: string, editor: any) => {
-    const text = editor.getText();
-    const textLength = text.trim().length;
+  const handleChange = useCallback((content: string, _delta: any, _source: string, editor: any) => {
+    try {
+      const text = editor.getText();
+      const textLength = text.trim().length;
 
-    // Allow change if within limit or if user is deleting
-    if (textLength <= maxLength || content.length < value.length) {
+      // Allow change if within limit or if user is deleting
+      if (textLength <= maxLength || content.length < value.length) {
+        onChange(content);
+      }
+    } catch (error) {
+      // If editor is not ready, just update the content
       onChange(content);
     }
-  };
-
-  // Focus the editor on mount
-  useEffect(() => {
-    if (quillRef.current) {
-      const editor = quillRef.current.getEditor();
-      editor.focus();
-    }
-  }, []);
+  }, [maxLength, onChange, value.length]);
 
   return (
     <div className="rich-text-editor-container">
