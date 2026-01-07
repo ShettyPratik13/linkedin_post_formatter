@@ -155,25 +155,33 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <div className="toolbar-group">
           <button
             type="button"
-            className="toolbar-btn"
+            className="toolbar-btn toolbar-btn-list"
             onMouseDown={(e) => {
               e.preventDefault();
               applyFormat('insertUnorderedList');
             }}
             title="Bullet List"
           >
-            •
+            <span className="icon-bullet-list">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
           </button>
           <button
             type="button"
-            className="toolbar-btn"
+            className="toolbar-btn toolbar-btn-list"
             onMouseDown={(e) => {
               e.preventDefault();
               applyFormat('insertOrderedList');
             }}
             title="Numbered List"
           >
-            1.
+            <span className="icon-numbered-list">
+              <span>1</span>
+              <span>2</span>
+              <span>3</span>
+            </span>
           </button>
         </div>
 

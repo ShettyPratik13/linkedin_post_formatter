@@ -165,21 +165,29 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         <div className="toolbar-group">
           <button
             type="button"
-            className="toolbar-btn"
+            className="toolbar-btn toolbar-btn-list"
             onClick={() => insertLinePrefix('- ')}
             title="Bullet List"
             aria-label="Bullet List"
           >
-            •
+            <span className="icon-bullet-list">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
           </button>
           <button
             type="button"
-            className="toolbar-btn"
+            className="toolbar-btn toolbar-btn-list"
             onClick={() => insertLinePrefix('1. ')}
             title="Numbered List"
             aria-label="Numbered List"
           >
-            1.
+            <span className="icon-numbered-list">
+              <span>1</span>
+              <span>2</span>
+              <span>3</span>
+            </span>
           </button>
         </div>
 
