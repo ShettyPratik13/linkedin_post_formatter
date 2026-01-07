@@ -236,7 +236,7 @@ const PostFormatter: React.FC = () => {
       </div>
 
       <footer className="footer">
-        <p>💡 Pro tip: Use the 😊 emoji button in the toolbar to add emojis. Rich text formatting makes your LinkedIn posts more engaging!</p>
+        <p>💡 Pro tip: Use the emoji button in the toolbar to add emojis. Rich text formatting makes your LinkedIn posts more engaging!</p>
       </footer>
     </div>
   );

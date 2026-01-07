@@ -64,55 +64,6 @@
   font-size: 14px;
 }
 
-/* List icons */
-.icon-bullet-list,
-.icon-numbered-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
-  font-size: 10px;
-  line-height: 1;
-}
-
-.icon-bullet-list span {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.icon-bullet-list span::before {
-  content: '●';
-  font-size: 6px;
-  display: inline-block;
-}
-
-.icon-bullet-list span::after {
-  content: '';
-  width: 12px;
-  height: 2px;
-  background: currentColor;
-  display: inline-block;
-  border-radius: 1px;
-}
-
-.icon-numbered-list span {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 9px;
-  font-weight: 600;
-}
-
-.icon-numbered-list span::after {
-  content: '';
-  width: 10px;
-  height: 2px;
-  background: currentColor;
-  display: inline-block;
-  border-radius: 1px;
-}
-
 /* Emoji Picker */
 .toolbar-btn-emoji {
   font-size: 18px;

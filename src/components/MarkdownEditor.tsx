@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, type ChangeEvent, type KeyboardEvent } from 'react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import { MdFormatListBulleted, MdFormatListNumbered, MdLink, MdFormatQuote, MdCode, MdMood } from 'react-icons/md';
 import './MarkdownEditor.css';
 
 interface MarkdownEditorProps {
@@ -210,29 +211,21 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         <div className="toolbar-group">
           <button
             type="button"
-            className="toolbar-btn toolbar-btn-list"
+            className="toolbar-btn"
             onClick={() => insertLinePrefix('- ')}
             title="Bullet List"
             aria-label="Bullet List"
           >
-            <span className="icon-bullet-list">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
+            <MdFormatListBulleted size={18} />
           </button>
           <button
             type="button"
-            className="toolbar-btn toolbar-btn-list"
+            className="toolbar-btn"
             onClick={() => insertLinePrefix('1. ')}
             title="Numbered List"
             aria-label="Numbered List"
           >
-            <span className="icon-numbered-list">
-              <span>1</span>
-              <span>2</span>
-              <span>3</span>
-            </span>
+            <MdFormatListNumbered size={18} />
           </button>
         </div>
 
@@ -246,7 +239,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             title="Link"
             aria-label="Link"
           >
-            🔗
+            <MdLink size={18} />
           </button>
           <button
             type="button"
@@ -255,7 +248,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             title="Inline Code"
             aria-label="Inline Code"
           >
-            {'</>'}
+            <MdCode size={16} />
           </button>
           <button
             type="button"
@@ -264,7 +257,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             title="Code Block"
             aria-label="Code Block"
           >
-            {'{ }'}
+            <MdCode size={18} />
           </button>
           <button
             type="button"
@@ -273,7 +266,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             title="Blockquote"
             aria-label="Blockquote"
           >
-            ❝
+            <MdFormatQuote size={18} />
           </button>
         </div>
 
@@ -290,7 +283,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             title="Insert Emoji"
             aria-label="Insert Emoji"
           >
-            😊
+            <MdMood size={18} />
           </button>
         </div>
       </div>

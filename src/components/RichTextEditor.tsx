@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import { MdFormatListBulleted, MdFormatListNumbered, MdLink, MdFormatQuote, MdCode, MdClose, MdMood } from 'react-icons/md';
 import './RichTextEditor.css';
 
 interface RichTextEditorProps {
@@ -188,33 +189,25 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <div className="toolbar-group">
           <button
             type="button"
-            className="toolbar-btn toolbar-btn-list"
+            className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
               applyFormat('insertUnorderedList');
             }}
             title="Bullet List"
           >
-            <span className="icon-bullet-list">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
+            <MdFormatListBulleted size={18} />
           </button>
           <button
             type="button"
-            className="toolbar-btn toolbar-btn-list"
+            className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
               applyFormat('insertOrderedList');
             }}
             title="Numbered List"
           >
-            <span className="icon-numbered-list">
-              <span>1</span>
-              <span>2</span>
-              <span>3</span>
-            </span>
+            <MdFormatListNumbered size={18} />
           </button>
         </div>
 
@@ -230,7 +223,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             }}
             title="Insert Link"
           >
-            🔗
+            <MdLink size={18} />
           </button>
           <button
             type="button"
@@ -241,7 +234,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             }}
             title="Blockquote"
           >
-            ❝
+            <MdFormatQuote size={18} />
           </button>
           <button
             type="button"
@@ -252,7 +245,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             }}
             title="Code Block"
           >
-            {'</>'}
+            <MdCode size={18} />
           </button>
         </div>
 
@@ -269,7 +262,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             }}
             title="Clear Formatting"
           >
-            ✕
+            <MdClose size={18} />
           </button>
         </div>
 
@@ -285,7 +278,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             }}
             title="Insert Emoji"
           >
-            😊
+            <MdMood size={18} />
           </button>
         </div>
       </div>
