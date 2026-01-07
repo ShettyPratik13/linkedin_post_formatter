@@ -1,0 +1,243 @@
+.markdown-editor-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--editor-bg, white);
+  position: relative;
+}
+
+/* Markdown Toolbar */
+.markdown-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background: var(--toolbar-bg, #f8f9fa);
+  border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 4px;
+}
+
+.toolbar-separator {
+  width: 1px;
+  background: var(--border-color, #ddd);
+  margin: 0 4px;
+}
+
+.toolbar-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-btn:hover {
+  background: var(--button-hover-bg, #e9ecef);
+}
+
+.toolbar-btn:active {
+  background: var(--button-active-bg, #dee2e6);
+  transform: scale(0.95);
+}
+
+.toolbar-btn strong,
+.toolbar-btn em,
+.toolbar-btn s {
+  font-size: 14px;
+}
+
+/* Emoji Picker */
+.toolbar-btn-emoji {
+  font-size: 18px;
+}
+
+.emoji-picker-container {
+  position: absolute;
+  top: 60px;
+  right: 20px;
+  z-index: 1000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Markdown Textarea */
+.markdown-textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 300px;
+  padding: 20px;
+  border: none;
+  outline: none;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: none;
+  background: var(--editor-bg, white);
+  color: var(--text-color, #333);
+}
+
+.markdown-textarea::placeholder {
+  color: var(--placeholder-color, #999);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Markdown Help Section */
+.markdown-help {
+  border-top: 1px solid var(--border-color, #ddd);
+  background: var(--help-bg, #f8f9fa);
+}
+
+.markdown-help details {
+  padding: 0;
+}
+
+.markdown-help summary {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.markdown-help summary:hover {
+  background: var(--button-hover-bg, #e9ecef);
+}
+
+.markdown-help summary::marker {
+  content: '▶ ';
+}
+
+.markdown-help details[open] summary::marker {
+  content: '▼ ';
+}
+
+.help-content {
+  padding: 15px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  background: var(--editor-bg, white);
+  border-top: 1px solid var(--border-color, #ddd);
+}
+
+.help-section {
+  font-size: 13px;
+}
+
+.help-section strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-color, #333);
+  font-size: 14px;
+}
+
+.help-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.help-section li {
+  margin: 4px 0;
+  color: var(--text-secondary, #666);
+  line-height: 1.5;
+}
+
+.help-section code {
+  background: var(--code-bg, #f5f5f5);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  color: var(--code-color, #e83e8c);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .markdown-editor-container {
+    --editor-bg: #1e1e1e;
+    --toolbar-bg: #2d2d2d;
+    --help-bg: #252525;
+    --text-color: #e0e0e0;
+    --text-secondary: #aaa;
+    --border-color: #404040;
+    --button-hover-bg: #3d3d3d;
+    --button-active-bg: #4d4d4d;
+    --placeholder-color: #888;
+    --code-bg: #2d2d2d;
+    --code-color: #ff6b9d;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .markdown-toolbar {
+    padding: 8px;
+    gap: 4px;
+  }
+
+  .toolbar-btn {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    font-size: 13px;
+  }
+
+  .markdown-textarea {
+    font-size: 14px;
+    padding: 15px;
+  }
+
+  .help-content {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .markdown-help summary {
+    padding: 8px 15px;
+    font-size: 12px;
+  }
+
+  .help-content {
+    padding: 12px 15px;
+  }
+}
+
+/* Scrollbar styling */
+.markdown-textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+.markdown-textarea::-webkit-scrollbar-track {
+  background: var(--editor-bg, white);
+}
+
+.markdown-textarea::-webkit-scrollbar-thumb {
+  background: var(--border-color, #ddd);
+  border-radius: 4px;
+}
+
+.markdown-textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary, #999);
+}
+
