@@ -1,4 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 import './RichTextEditor.css';
 
 interface RichTextEditorProps {
@@ -6,6 +8,10 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   maxLength?: number;
+}
+
+interface EmojiData {
+  native: string;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -16,6 +22,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   // Update editor content when value changes externally
   useEffect(() => {
@@ -23,6 +31,23 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       editorRef.current.innerHTML = value;
     }
   }, [value]);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   const handleInput = () => {
     if (editorRef.current) {
@@ -59,6 +84,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const formatBlock = (tag: string) => {
     document.execCommand('formatBlock', false, tag);
     editorRef.current?.focus();
+  };
+
+  const insertEmoji = (emoji: EmojiData) => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+      document.execCommand('insertText', false, emoji.native);
+      setShowEmojiPicker(false);
+    }
   };
 
   return (
@@ -239,7 +272,36 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             ✕
           </button>
         </div>
+
+        <div className="toolbar-separator"></div>
+
+        <div className="toolbar-group">
+          <button
+            type="button"
+            className="toolbar-btn toolbar-btn-emoji"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowEmojiPicker(!showEmojiPicker);
+            }}
+            title="Insert Emoji"
+          >
+            😊
+          </button>
+        </div>
       </div>
+
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <div className="emoji-picker-container" ref={emojiPickerRef}>
+          <Picker 
+            data={data} 
+            onEmojiSelect={insertEmoji}
+            theme="auto"
+            previewPosition="none"
+            skinTonePosition="search"
+          />
+        </div>
+      )}
 
       {/* Editor */}
       <div

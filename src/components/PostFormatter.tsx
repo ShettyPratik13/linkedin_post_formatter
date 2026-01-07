@@ -109,20 +109,6 @@ const PostFormatter: React.FC = () => {
     setMarkdownContent('');
   };
 
-  // Add emoji
-  const addEmoji = (emoji: string) => {
-    if (editorMode === 'wysiwyg') {
-      setHtmlContent(prev => prev + emoji);
-    } else {
-      setMarkdownContent(prev => prev + emoji);
-    }
-  };
-
-  const popularEmojis = [
-    '😊', '👍', '🎉', '💡', '🚀', '📈', '💼', '🔥', '✨', '🎯',
-    '💪', '🌟', '📊', '✅', '🏆', '❤️', '🙌', '💯', '🎓', '🌍'
-  ];
-
   // Generate preview HTML
   const previewHtml = useMemo(() => {
     if (!currentContent) return '';
@@ -184,24 +170,6 @@ const PostFormatter: React.FC = () => {
                 maxLength={linkedInMaxLength}
               />
             )}
-          </div>
-
-          {/* Emoji Picker */}
-          <div className="emoji-picker">
-            <h3>Quick Emojis:</h3>
-            <div className="emoji-list">
-              {popularEmojis.map((emoji, index) => (
-                <button
-                  key={index}
-                  className="emoji-button"
-                  onClick={() => addEmoji(emoji)}
-                  title={`Add ${emoji}`}
-                  aria-label={`Add emoji ${emoji}`}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Action Buttons */}
@@ -268,7 +236,7 @@ const PostFormatter: React.FC = () => {
       </div>
 
       <footer className="footer">
-        <p>💡 Pro tip: Use rich text formatting and emojis to make your LinkedIn posts more engaging!</p>
+        <p>💡 Pro tip: Use the 😊 emoji button in the toolbar to add emojis. Rich text formatting makes your LinkedIn posts more engaging!</p>
       </footer>
     </div>
   );

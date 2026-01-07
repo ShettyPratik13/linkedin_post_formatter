@@ -1,4 +1,6 @@
-import { useRef, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useRef, useState, useEffect, type ChangeEvent, type KeyboardEvent } from 'react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 import './MarkdownEditor.css';
 
 interface MarkdownEditorProps {
@@ -8,6 +10,10 @@ interface MarkdownEditorProps {
   maxLength?: number;
 }
 
+interface EmojiData {
+  native: string;
+}
+
 const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   value,
   onChange,
@@ -15,6 +21,25 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   maxLength = 3000,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -89,6 +114,26 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       if (textareaRef.current) {
         textareaRef.current.selectionStart = start + prefix.length;
         textareaRef.current.selectionEnd = start + prefix.length;
+        textareaRef.current.focus();
+      }
+    }, 0);
+  };
+
+  const insertEmoji = (emoji: EmojiData) => {
+    if (!textareaRef.current) return;
+
+    const start = textareaRef.current.selectionStart;
+    const end = textareaRef.current.selectionEnd;
+    const newValue = value.substring(0, start) + emoji.native + value.substring(end);
+    
+    onChange(newValue);
+    setShowEmojiPicker(false);
+    
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPosition = start + emoji.native.length;
+        textareaRef.current.selectionStart = newPosition;
+        textareaRef.current.selectionEnd = newPosition;
         textareaRef.current.focus();
       }
     }, 0);
@@ -231,7 +276,37 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             ❝
           </button>
         </div>
+
+        <div className="toolbar-separator"></div>
+
+        <div className="toolbar-group">
+          <button
+            type="button"
+            className="toolbar-btn toolbar-btn-emoji"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowEmojiPicker(!showEmojiPicker);
+            }}
+            title="Insert Emoji"
+            aria-label="Insert Emoji"
+          >
+            😊
+          </button>
+        </div>
       </div>
+
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <div className="emoji-picker-container" ref={emojiPickerRef}>
+          <Picker 
+            data={data} 
+            onEmojiSelect={insertEmoji}
+            theme="auto"
+            previewPosition="none"
+            skinTonePosition="search"
+          />
+        </div>
+      )}
 
       {/* Editor Textarea */}
       <textarea
