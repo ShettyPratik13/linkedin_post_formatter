@@ -92,11 +92,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       return;
     }
 
-    const extracted = range.extractContents();
-    const list = document.createElement(listType);
-    const temp = document.createElement('div');
-    temp.appendChild(extracted);
-
     const blockTags = new Set([
       'p',
       'div',
@@ -112,6 +107,38 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       'ol',
       'li',
     ]);
+
+    // Helper function to find the nearest block element ancestor
+    const findBlockAncestor = (node: Node): Element | null => {
+      let current = node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement;
+      while (current && current !== editorRef.current) {
+        if (blockTags.has(current.tagName.toLowerCase())) {
+          return current;
+        }
+        current = current.parentElement;
+      }
+      return null;
+    };
+
+    // Find the block elements at the start and end of the selection
+    const startBlock = findBlockAncestor(range.startContainer);
+    const endBlock = findBlockAncestor(range.endContainer);
+
+    if (!startBlock || !endBlock) {
+      // Fallback to original behavior if no block found
+      applyFormat(listType === 'ul' ? 'insertUnorderedList' : 'insertOrderedList');
+      return;
+    }
+
+    // Expand range to encompass entire block elements
+    const expandedRange = document.createRange();
+    expandedRange.setStartBefore(startBlock);
+    expandedRange.setEndAfter(endBlock);
+
+    const extracted = expandedRange.extractContents();
+    const list = document.createElement(listType);
+    const temp = document.createElement('div');
+    temp.appendChild(extracted);
 
     let currentNodes: Node[] = [];
 
@@ -179,7 +206,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       list.appendChild(listItem);
     }
 
-    range.insertNode(list);
+    expandedRange.insertNode(list);
 
     selection.removeAllRanges();
     const newRange = document.createRange();
