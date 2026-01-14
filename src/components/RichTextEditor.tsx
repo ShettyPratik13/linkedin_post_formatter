@@ -75,6 +75,149 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     editorRef.current?.focus();
   };
 
+  const applyListFormat = (listType: 'ul' | 'ol') => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      applyFormat(listType === 'ul' ? 'insertUnorderedList' : 'insertOrderedList');
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!editorRef.current || !editorRef.current.contains(range.commonAncestorContainer)) {
+      return;
+    }
+
+    if (selection.isCollapsed) {
+      applyFormat(listType === 'ul' ? 'insertUnorderedList' : 'insertOrderedList');
+      return;
+    }
+
+    const blockTags = new Set([
+      'p',
+      'div',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'blockquote',
+      'pre',
+      'ul',
+      'ol',
+      'li',
+    ]);
+
+    // Helper function to find the nearest block element ancestor
+    const findBlockAncestor = (node: Node): Element | null => {
+      let current = node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement;
+      while (current && current !== editorRef.current) {
+        if (blockTags.has(current.tagName.toLowerCase())) {
+          return current;
+        }
+        current = current.parentElement;
+      }
+      return null;
+    };
+
+    // Find the block elements at the start and end of the selection
+    const startBlock = findBlockAncestor(range.startContainer);
+    const endBlock = findBlockAncestor(range.endContainer);
+
+    if (!startBlock || !endBlock) {
+      // Fallback to original behavior if no block found
+      applyFormat(listType === 'ul' ? 'insertUnorderedList' : 'insertOrderedList');
+      return;
+    }
+
+    // Expand range to encompass entire block elements
+    const expandedRange = document.createRange();
+    expandedRange.setStartBefore(startBlock);
+    expandedRange.setEndAfter(endBlock);
+
+    const extracted = expandedRange.extractContents();
+    const list = document.createElement(listType);
+    const temp = document.createElement('div');
+    temp.appendChild(extracted);
+
+    let currentNodes: Node[] = [];
+
+    const appendCurrentNodes = () => {
+      if (!currentNodes.length) return;
+      const listItem = document.createElement('li');
+      currentNodes.forEach((node) => listItem.appendChild(node));
+      list.appendChild(listItem);
+      currentNodes = [];
+    };
+
+    Array.from(temp.childNodes).forEach((node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        const tagName = element.tagName.toLowerCase();
+
+        if (tagName === 'br') {
+          appendCurrentNodes();
+          return;
+        }
+
+        if (blockTags.has(tagName)) {
+          appendCurrentNodes();
+
+          if (tagName === 'li') {
+            const listItem = document.createElement('li');
+            while (element.firstChild) {
+              listItem.appendChild(element.firstChild);
+            }
+            list.appendChild(listItem);
+            return;
+          }
+
+          if (tagName === 'ul' || tagName === 'ol') {
+            const listItems = Array.from(element.children).filter(
+              (child) => child.tagName.toLowerCase() === 'li'
+            );
+            if (listItems.length) {
+              listItems.forEach((listItemNode) => {
+                const listItem = document.createElement('li');
+                while (listItemNode.firstChild) {
+                  listItem.appendChild(listItemNode.firstChild);
+                }
+                list.appendChild(listItem);
+              });
+              return;
+            }
+          }
+
+          const listItem = document.createElement('li');
+          listItem.appendChild(element);
+          list.appendChild(listItem);
+          return;
+        }
+      }
+
+      currentNodes.push(node);
+    });
+
+    appendCurrentNodes();
+
+    if (!list.childNodes.length) {
+      const listItem = document.createElement('li');
+      listItem.appendChild(document.createElement('br'));
+      list.appendChild(listItem);
+    }
+
+    expandedRange.insertNode(list);
+
+    selection.removeAllRanges();
+    const newRange = document.createRange();
+    newRange.selectNodeContents(list);
+    newRange.collapse(false);
+    selection.addRange(newRange);
+
+    editorRef.current?.focus();
+    editorRef.current?.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
   const insertLink = () => {
     const url = prompt('Enter URL:');
     if (url) {
@@ -192,7 +335,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              applyFormat('insertUnorderedList');
+              applyListFormat('ul');
             }}
             title="Bullet List"
           >
@@ -203,7 +346,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              applyFormat('insertOrderedList');
+              applyListFormat('ol');
             }}
             title="Numbered List"
           >
@@ -313,4 +456,3 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 };
 
 export default RichTextEditor;
-
