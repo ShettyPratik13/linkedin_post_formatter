@@ -2,6 +2,8 @@ import { useRef, useEffect, useState } from 'react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { MdFormatListBulleted, MdFormatListNumbered, MdLink, MdFormatQuote, MdCode, MdClose, MdMood } from 'react-icons/md';
+import { trackFormatAction } from '../utils/analytics';
+import { EditorType } from '../types/editor';
 import './RichTextEditor.css';
 
 interface RichTextEditorProps {
@@ -234,8 +236,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (editorRef.current) {
       editorRef.current.focus();
       document.execCommand('insertText', false, emoji.native);
+      trackFormatAction('emoji_insert', EditorType.WYSIWYG);
       setShowEmojiPicker(false);
     }
+  };
+
+  // Tracked toolbar actions
+  const handleHeading = (level: string) => {
+    trackFormatAction(level, EditorType.WYSIWYG);
+    formatBlock(level);
+  };
+
+  const handleFormatAction = (command: string, trackAs: string) => {
+    trackFormatAction(trackAs, EditorType.WYSIWYG);
+    applyFormat(command);
+  };
+
+  const handleListAction = (listType: 'ul' | 'ol', trackAs: string) => {
+    trackFormatAction(trackAs, EditorType.WYSIWYG);
+    applyListFormat(listType);
+  };
+
+  const handleLinkAction = () => {
+    trackFormatAction('link', EditorType.WYSIWYG);
+    insertLink();
+  };
+
+  const handleBlockAction = (tag: string, trackAs: string) => {
+    trackFormatAction(trackAs, EditorType.WYSIWYG);
+    formatBlock(tag);
+  };
+
+  const handleClearFormatting = () => {
+    trackFormatAction('clear_format', EditorType.WYSIWYG);
+    applyFormat('removeFormat');
+    formatBlock('p');
+  };
+
+  const handleEmojiOpen = () => {
+    if (!showEmojiPicker) {
+      trackFormatAction('emoji_open', EditorType.WYSIWYG);
+    }
+    setShowEmojiPicker(!showEmojiPicker);
   };
 
   return (
@@ -248,7 +290,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              formatBlock('h1');
+              handleHeading('h1');
             }}
             title="Heading 1"
           >
@@ -259,7 +301,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              formatBlock('h2');
+              handleHeading('h2');
             }}
             title="Heading 2"
           >
@@ -270,7 +312,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              formatBlock('h3');
+              handleHeading('h3');
             }}
             title="Heading 3"
           >
@@ -286,7 +328,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              applyFormat('bold');
+              handleFormatAction('bold', 'bold');
             }}
             title="Bold (Ctrl/Cmd+B)"
           >
@@ -297,7 +339,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              applyFormat('italic');
+              handleFormatAction('italic', 'italic');
             }}
             title="Italic (Ctrl/Cmd+I)"
           >
@@ -308,7 +350,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              applyFormat('underline');
+              handleFormatAction('underline', 'underline');
             }}
             title="Underline (Ctrl/Cmd+U)"
           >
@@ -319,7 +361,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              applyFormat('strikeThrough');
+              handleFormatAction('strikeThrough', 'strikethrough');
             }}
             title="Strikethrough"
           >
@@ -335,7 +377,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              applyListFormat('ul');
+              handleListAction('ul', 'bullet_list');
             }}
             title="Bullet List"
           >
@@ -346,7 +388,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              applyListFormat('ol');
+              handleListAction('ol', 'numbered_list');
             }}
             title="Numbered List"
           >
@@ -362,7 +404,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              insertLink();
+              handleLinkAction();
             }}
             title="Insert Link"
           >
@@ -373,7 +415,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              formatBlock('blockquote');
+              handleBlockAction('blockquote', 'blockquote');
             }}
             title="Blockquote"
           >
@@ -384,7 +426,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              formatBlock('pre');
+              handleBlockAction('pre', 'code_block');
             }}
             title="Code Block"
           >
@@ -400,8 +442,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn"
             onMouseDown={(e) => {
               e.preventDefault();
-              applyFormat('removeFormat');
-              formatBlock('p');
+              handleClearFormatting();
             }}
             title="Clear Formatting"
           >
@@ -417,7 +458,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             className="toolbar-btn toolbar-btn-emoji"
             onClick={(e) => {
               e.preventDefault();
-              setShowEmojiPicker(!showEmojiPicker);
+              handleEmojiOpen();
             }}
             title="Insert Emoji"
           >
