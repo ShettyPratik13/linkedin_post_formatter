@@ -2,6 +2,8 @@ import { useRef, useState, useEffect, type ChangeEvent, type KeyboardEvent } fro
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { MdFormatListBulleted, MdFormatListNumbered, MdLink, MdFormatQuote, MdCode, MdMood } from 'react-icons/md';
+import { trackFormatAction, trackHelpOpen } from '../utils/analytics';
+import { EditorType } from '../types/editor';
 import './MarkdownEditor.css';
 
 interface MarkdownEditorProps {
@@ -128,6 +130,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     const newValue = value.substring(0, start) + emoji.native + value.substring(end);
     
     onChange(newValue);
+    trackFormatAction('emoji_insert', EditorType.MARKDOWN);
     setShowEmojiPicker(false);
     
     setTimeout(() => {
@@ -140,6 +143,35 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }, 0);
   };
 
+  // Tracked toolbar actions
+  const handleWrapSelectionTracked = (before: string, after: string, trackAs: string) => {
+    trackFormatAction(trackAs, EditorType.MARKDOWN);
+    wrapSelection(before, after);
+  };
+
+  const handleLinePrefixTracked = (prefix: string, trackAs: string) => {
+    trackFormatAction(trackAs, EditorType.MARKDOWN);
+    insertLinePrefix(prefix);
+  };
+
+  const handleInsertTracked = (text: string, trackAs: string) => {
+    trackFormatAction(trackAs, EditorType.MARKDOWN);
+    insertAtCursor(text);
+  };
+
+  const handleEmojiOpen = () => {
+    if (!showEmojiPicker) {
+      trackFormatAction('emoji_open', EditorType.MARKDOWN);
+    }
+    setShowEmojiPicker(!showEmojiPicker);
+  };
+
+  const handleHelpToggle = (e: React.SyntheticEvent<HTMLDetailsElement>) => {
+    if ((e.target as HTMLDetailsElement).open) {
+      trackHelpOpen('markdown_syntax_guide');
+    }
+  };
+
   return (
     <div className="markdown-editor-container">
       {/* Markdown Toolbar */}
@@ -148,7 +180,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => wrapSelection('**')}
+            onClick={() => handleWrapSelectionTracked('**', '**', 'bold')}
             title="Bold (Ctrl/Cmd+B)"
             aria-label="Bold"
           >
@@ -157,7 +189,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => wrapSelection('*')}
+            onClick={() => handleWrapSelectionTracked('*', '*', 'italic')}
             title="Italic (Ctrl/Cmd+I)"
             aria-label="Italic"
           >
@@ -166,7 +198,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => wrapSelection('~~')}
+            onClick={() => handleWrapSelectionTracked('~~', '~~', 'strikethrough')}
             title="Strikethrough"
             aria-label="Strikethrough"
           >
@@ -180,7 +212,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => insertLinePrefix('# ')}
+            onClick={() => handleLinePrefixTracked('# ', 'h1')}
             title="Heading 1"
             aria-label="Heading 1"
           >
@@ -189,7 +221,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => insertLinePrefix('## ')}
+            onClick={() => handleLinePrefixTracked('## ', 'h2')}
             title="Heading 2"
             aria-label="Heading 2"
           >
@@ -198,7 +230,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => insertLinePrefix('### ')}
+            onClick={() => handleLinePrefixTracked('### ', 'h3')}
             title="Heading 3"
             aria-label="Heading 3"
           >
@@ -212,7 +244,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => insertLinePrefix('- ')}
+            onClick={() => handleLinePrefixTracked('- ', 'bullet_list')}
             title="Bullet List"
             aria-label="Bullet List"
           >
@@ -221,7 +253,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => insertLinePrefix('1. ')}
+            onClick={() => handleLinePrefixTracked('1. ', 'numbered_list')}
             title="Numbered List"
             aria-label="Numbered List"
           >
@@ -235,7 +267,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => wrapSelection('[Link Text](', ')')}
+            onClick={() => handleWrapSelectionTracked('[Link Text](', ')', 'link')}
             title="Link"
             aria-label="Link"
           >
@@ -244,7 +276,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => wrapSelection('`')}
+            onClick={() => handleWrapSelectionTracked('`', '`', 'inline_code')}
             title="Inline Code"
             aria-label="Inline Code"
           >
@@ -253,7 +285,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => insertAtCursor('\n```\n\n```\n')}
+            onClick={() => handleInsertTracked('\n```\n\n```\n', 'code_block')}
             title="Code Block"
             aria-label="Code Block"
           >
@@ -262,7 +294,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <button
             type="button"
             className="toolbar-btn"
-            onClick={() => insertLinePrefix('> ')}
+            onClick={() => handleLinePrefixTracked('> ', 'blockquote')}
             title="Blockquote"
             aria-label="Blockquote"
           >
@@ -278,7 +310,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             className="toolbar-btn toolbar-btn-emoji"
             onClick={(e) => {
               e.preventDefault();
-              setShowEmojiPicker(!showEmojiPicker);
+              handleEmojiOpen();
             }}
             title="Insert Emoji"
             aria-label="Insert Emoji"
@@ -315,7 +347,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
       {/* Markdown Syntax Help */}
       <div className="markdown-help">
-        <details>
+        <details onToggle={handleHelpToggle}>
           <summary>Markdown Syntax Guide</summary>
           <div className="help-content">
             <div className="help-section">
