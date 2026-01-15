@@ -200,6 +200,69 @@ npm run preview
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint to check code quality
 
+## Analytics Setup (Optional)
+
+The app includes optional Google Tag Manager (GTM) integration with Consent Mode v2 for privacy-compliant analytics. **No post content is ever tracked** - only anonymous usage metadata like button clicks and feature adoption.
+
+### Environment Variable
+
+Create a `.env` file in the project root:
+
+```env
+VITE_GTM_ID=GTM-XXXXXXX
+```
+
+Replace `GTM-XXXXXXX` with your actual GTM container ID.
+
+### Consent Banner
+
+A consent banner will automatically appear for first-time visitors:
+- **Accept**: Enables analytics tracking
+- **Decline**: Analytics remain disabled (default)
+
+User preference is stored in `localStorage` and persists across sessions.
+
+### Google Tag Manager Setup
+
+1. **Create a GA4 Configuration Tag**
+   - Tag Type: Google Analytics: GA4 Configuration
+   - Measurement ID: Your GA4 property ID (G-XXXXXXXX)
+   - Trigger: All Pages
+
+2. **Create Custom Event Tags** for each tracked event:
+
+   | Event Name | Parameters |
+   |------------|------------|
+   | `post_start` | `editor_mode` |
+   | `copy_output` | `copy_format`, `editor_mode`, `chars_total`, `over_limit`, `duration_ms` |
+   | `toggle_editor_mode` | `from`, `to`, `has_content` |
+   | `clear_post` | `chars_total`, `editor_mode` |
+   | `format_action` | `action`, `editor_mode` |
+   | `help_open` | `section` |
+
+3. **Create Data Layer Variables** in GTM:
+   - Variable Type: Data Layer Variable
+   - Create one for each parameter (e.g., `dlv - editor_mode`, `dlv - copy_format`, etc.)
+
+4. **Configure Event Triggers**:
+   - Trigger Type: Custom Event
+   - Event name: Match each event (e.g., `post_start`, `copy_output`, etc.)
+
+### Verifying Your Setup
+
+1. **Enable GTM Preview Mode**: Click "Preview" in GTM
+2. **Open the app** in the same browser
+3. **Perform actions** (type, format, copy)
+4. **Check GTM Debug Panel**: Events should appear in the "Tags Fired" section
+5. **Check GA4 DebugView**: Navigate to Admin → DebugView in GA4 to see real-time events
+
+### Privacy Notes
+
+- **Consent Mode v2**: Analytics are blocked by default until user accepts
+- **No content tracking**: Post text and selected content are never sent
+- **Metadata only**: We only track counts, durations, and action names
+- **Local storage**: Consent preference stored client-side only
+
 ## Browser Support
 
 - Chrome/Edge (latest)
@@ -282,22 +345,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Built with [React](https://react.dev/)
-- Rich text editing powered by [Quill](https://quilljs.com/)
-- Markdown parsing by [Marked](https://marked.js.org/)
-- Icons and emojis from Unicode
+
 
 ## Roadmap
 
 Potential future enhancements:
 - [ ] More emoji categories
-- [ ] Custom emoji picker
+- [x] Emoji picker
 - [ ] Save drafts locally
 - [ ] Export to other formats (PDF, HTML file)
 - [ ] Templates for common post types
 - [ ] AI-powered post suggestions
 - [ ] Scheduled post reminders
-- [ ] Analytics for post length and formatting
+- [x] Analytics for post length and formatting (GTM + GA4 integration)
 
 ---
 
-Made with ❤️ for the LinkedIn community. Happy posting!
+Made with ❤️ by Pratik Shetty (& Cursor) for the LinkedIn community. Happy posting!

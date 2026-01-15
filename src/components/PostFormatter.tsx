@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import RichTextEditor from './RichTextEditor';
 import MarkdownEditor from './MarkdownEditor';
 import {
@@ -8,35 +8,64 @@ import {
   formatForLinkedIn,
   getPlainTextLength,
 } from '../utils/textFormatters';
+import {
+  trackPostStart,
+  trackCopyOutput,
+  trackToggleEditorMode,
+  trackClearPost,
+} from '../utils/analytics';
+import { EditorType, type EditorTypeValue } from '../types/editor';
 import './PostFormatter.css';
 
-type EditorMode = 'wysiwyg' | 'markdown';
 type CopyFormat = 'plain' | 'rich' | 'markdown';
 
 const PostFormatter: React.FC = () => {
-  const [editorMode, setEditorMode] = useState<EditorMode>('wysiwyg');
+  const [editorMode, setEditorMode] = useState<EditorTypeValue>(EditorType.WYSIWYG);
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [markdownContent, setMarkdownContent] = useState<string>('');
   const [copied, setCopied] = useState<CopyFormat | null>(null);
 
+  // Analytics: track when post was started for duration calculation
+  const postStartTimeRef = useRef<number | null>(null);
+  const hadContentRef = useRef<boolean>(false);
+
   const linkedInMaxLength = 3000;
 
   // Get current content based on mode
-  const currentContent = editorMode === 'wysiwyg' ? htmlContent : markdownContent;
+  const currentContent = editorMode === EditorType.WYSIWYG ? htmlContent : markdownContent;
 
   // Calculate character count (plain text)
   const characterCount = useMemo(() => {
-    return getPlainTextLength(currentContent, editorMode === 'wysiwyg' ? 'html' : 'markdown');
+    return getPlainTextLength(currentContent, editorMode === EditorType.WYSIWYG ? 'html' : 'markdown');
   }, [currentContent, editorMode]);
 
+  const hasContent = Boolean(currentContent.trim());
+
+  // Analytics: track post_start when content goes from empty to non-empty
+  useEffect(() => {
+    if (hasContent && !hadContentRef.current) {
+      // Content just became non-empty - this is post_start
+      postStartTimeRef.current = Date.now();
+      trackPostStart({ editor_mode: editorMode });
+    }
+    hadContentRef.current = hasContent;
+  }, [hasContent, editorMode]);
+
   // Handle editor mode toggle
-  const handleModeToggle = (newMode: EditorMode) => {
+  const handleModeToggle = (newMode: EditorTypeValue) => {
     if (newMode === editorMode) return;
 
+    // Analytics: track mode toggle
+    trackToggleEditorMode({
+      from: editorMode,
+      to: newMode,
+      has_content: hasContent,
+    });
+
     // Convert content between formats
-    if (newMode === 'markdown' && htmlContent) {
+    if (newMode === EditorType.MARKDOWN && htmlContent) {
       setMarkdownContent(htmlToMarkdown(htmlContent));
-    } else if (newMode === 'wysiwyg' && markdownContent) {
+    } else if (newMode === EditorType.WYSIWYG && markdownContent) {
       setHtmlContent(markdownToHtml(markdownContent));
     }
 
@@ -55,6 +84,21 @@ const PostFormatter: React.FC = () => {
 
   // Handle copy with different formats
   const handleCopy = async (format: CopyFormat) => {
+    // Analytics: calculate duration since post started
+    const durationMs = postStartTimeRef.current
+      ? Date.now() - postStartTimeRef.current
+      : 0;
+
+    const trackCopySuccess = () => {
+      trackCopyOutput({
+        copy_format: format,
+        editor_mode: editorMode,
+        chars_total: characterCount,
+        over_limit: characterCount > linkedInMaxLength,
+        duration_ms: durationMs,
+      });
+    };
+
     try {
       let textToCopy = '';
 
@@ -62,11 +106,11 @@ const PostFormatter: React.FC = () => {
         // LinkedIn-compatible plain text with Unicode formatting
         textToCopy = formatForLinkedIn(
           currentContent,
-          editorMode === 'wysiwyg' ? 'html' : 'markdown'
+          editorMode === EditorType.WYSIWYG ? 'html' : 'markdown'
         );
       } else if (format === 'rich') {
         // Copy as HTML (for rich text compatible platforms)
-        const html = editorMode === 'wysiwyg' ? htmlContent : markdownToHtml(markdownContent);
+        const html = editorMode === EditorType.WYSIWYG ? htmlContent : markdownToHtml(markdownContent);
         // Create a ClipboardItem with HTML
         const blob = new Blob([html], { type: 'text/html' });
         const plainBlob = new Blob([stripFormatting(html)], { type: 'text/plain' });
@@ -76,15 +120,17 @@ const PostFormatter: React.FC = () => {
             'text/plain': plainBlob,
           }),
         ]);
+        trackCopySuccess();
         setCopied(format);
         setTimeout(() => setCopied(null), 2000);
         return;
       } else if (format === 'markdown') {
         // Copy as Markdown
-        textToCopy = editorMode === 'markdown' ? markdownContent : htmlToMarkdown(htmlContent);
+        textToCopy = editorMode === EditorType.MARKDOWN ? markdownContent : htmlToMarkdown(htmlContent);
       }
 
       await navigator.clipboard.writeText(textToCopy);
+      trackCopySuccess();
       setCopied(format);
       setTimeout(() => setCopied(null), 2000);
     } catch (err) {
@@ -92,9 +138,10 @@ const PostFormatter: React.FC = () => {
       // Fallback: copy plain text
       try {
         const plainText = stripFormatting(
-          editorMode === 'wysiwyg' ? htmlContent : markdownToHtml(markdownContent)
+          editorMode === EditorType.WYSIWYG ? htmlContent : markdownToHtml(markdownContent)
         );
         await navigator.clipboard.writeText(plainText);
+        trackCopySuccess();
         setCopied(format);
         setTimeout(() => setCopied(null), 2000);
       } catch (fallbackErr) {
@@ -105,17 +152,25 @@ const PostFormatter: React.FC = () => {
 
   // Handle clear
   const handleClear = () => {
+    // Analytics: track clear action before clearing
+    if (hasContent) {
+      trackClearPost({
+        chars_total: characterCount,
+        editor_mode: editorMode,
+      });
+    }
+
     setHtmlContent('');
     setMarkdownContent('');
+    // Reset post start time for next session
+    postStartTimeRef.current = null;
   };
 
   // Generate preview HTML
   const previewHtml = useMemo(() => {
     if (!currentContent) return '';
-    return editorMode === 'wysiwyg' ? htmlContent : markdownToHtml(markdownContent);
+    return editorMode === EditorType.WYSIWYG ? htmlContent : markdownToHtml(markdownContent);
   }, [currentContent, editorMode, htmlContent, markdownContent]);
-
-  const hasContent = Boolean(currentContent.trim());
 
   return (
     <div className="post-formatter-container">
@@ -132,16 +187,16 @@ const PostFormatter: React.FC = () => {
               {/* Editor Mode Toggle */}
               <div className="mode-toggle">
                 <button
-                  className={`mode-btn ${editorMode === 'wysiwyg' ? 'active' : ''}`}
-                  onClick={() => handleModeToggle('wysiwyg')}
+                  className={`mode-btn ${editorMode === EditorType.WYSIWYG ? 'active' : ''}`}
+                  onClick={() => handleModeToggle(EditorType.WYSIWYG)}
                   aria-label="WYSIWYG Editor"
                   title="Visual Editor"
                 >
                   Visual
                 </button>
                 <button
-                  className={`mode-btn ${editorMode === 'markdown' ? 'active' : ''}`}
-                  onClick={() => handleModeToggle('markdown')}
+                  className={`mode-btn ${editorMode === EditorType.MARKDOWN ? 'active' : ''}`}
+                  onClick={() => handleModeToggle(EditorType.MARKDOWN)}
                   aria-label="Markdown Editor"
                   title="Markdown Editor"
                 >
@@ -157,7 +212,7 @@ const PostFormatter: React.FC = () => {
 
           {/* Conditional Editor Rendering */}
           <div className="editor-wrapper">
-            {editorMode === 'wysiwyg' ? (
+            {editorMode === EditorType.WYSIWYG ? (
               <RichTextEditor
                 value={htmlContent}
                 onChange={handleHtmlChange}
