@@ -119,9 +119,10 @@ const toUnicodeItalic = (text: string): string => {
 
 /**
  * Convert text to Unicode underline using combining low line character (U+0332)
+ * Adding U+035F (COMBINING DOUBLE MACRON BELOW) between characters helps connect underlines
  */
 const toUnicodeUnderline = (text: string): string => {
-  return text.split('').map(char => char + '\u0332').join('');
+  return text.split('').map(char => char + '\u0332').join('\u035F');
 };
 
 /**
